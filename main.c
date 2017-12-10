@@ -14,9 +14,13 @@ int main(int argc, char **argv)
 
     // init parametrs
     size_t L; // max lenght
-    sha_t sha;
+    sha_t *sha = calloc(1, sizeof(*sha));
+    if (!sha) {
+        perror("alloc sha");
+        MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+    }
     ull_t N;
-    if (init_alpha(argv, &L, &N, &sha)) {
+    if (init_alpha(argv, &L, &N, sha)) {
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
 
@@ -30,7 +34,7 @@ int main(int argc, char **argv)
     ull_t start_comb, comb_per_proc;
     comb_per_proc = get_block_size(N, rank, commsize);
     start_comb = get_start_block(N, (ull_t) rank, commsize);
-    size_t n = comb(maybe, start_comb, L, &sha);
+    size_t n = comb(maybe, start_comb, L, sha);
 
 #if DEBUG
     {
@@ -43,25 +47,25 @@ int main(int argc, char **argv)
     }
 #endif
 
-    backtrack(maybe, &sha, n, 0, comb_per_proc);
+    backtrack(maybe, sha, n, 0, comb_per_proc);
 
 #if DEBUG
     {
-        debug(printf("prev [%d] n %lu %llu\n", rank, n, sha.c))
+        debug(printf("prev [%d] n %lu %llu\n", rank, n, sha->c))
     }
 #endif
 
-    for (size_t i = n + 1; i <= L && !sha.found && sha.c < comb_per_proc; ++i) {
-        InitString(maybe, i, sha.alphabet[0]);
-        backtrack(maybe, &sha, i, 0, comb_per_proc);
+    for (size_t i = n + 1; i <= L && !sha->found && sha->c < comb_per_proc; ++i) {
+        InitString(maybe, i, sha->alphabet[0]);
+        backtrack(maybe, sha, i, 0, comb_per_proc);
     }
 
 
     ttotal += MPI_Wtime();
 
-    if (sha.found) {
+    if (sha->found) {
         printf("[%d|%d] %lf\n", rank, commsize, ttotal);
-        freeAll(maybe, sha.alpha, sha.mem_cur_sha, sha.mem_sha, sha.alphabet, NULL);
+        freeAll(maybe, sha->alpha, sha->mem_cur_sha, sha->mem_sha, sha->alphabet, sha, NULL);
         MPI_Abort(MPI_COMM_WORLD, EXIT_SUCCESS);
     }
 
@@ -71,7 +75,7 @@ int main(int argc, char **argv)
     if (rank == 0) {
         printf("%d %d %.6f\n", rank, commsize, ttotal);
     }
-    freeAll(maybe, sha.alpha, sha.mem_cur_sha, sha.mem_sha, sha.alphabet, NULL);
+    freeAll(maybe, sha->alpha, sha->mem_cur_sha, sha->mem_sha, sha->alphabet, sha, NULL);
     MPI_Finalize();
     return EXIT_SUCCESS;
 }
