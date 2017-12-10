@@ -30,10 +30,10 @@ void uniq(char *arr, size_t *n)
 
 int init_alpha(char **argv, size_t *L, ull_t *N, sha_t *sha)
 {
-    qsort(argv[3], strlen(argv[3]), sizeof(char), (__compar_fn_t) strcmp);
     sha->alphabet = strdup(argv[3]);
-
     sha->n = strlen(sha->alphabet);
+    qsort(sha->alphabet, sha->n, sizeof(char), (__compar_fn_t) strcmp);
+
     uniq(sha->alphabet, &sha->n);
 
     // atoi
@@ -44,7 +44,7 @@ int init_alpha(char **argv, size_t *L, ull_t *N, sha_t *sha)
         return EXIT_FAILURE;
     }
 
-    sha->alpha = calloc((size_t) (sha->alphabet[sha->n - 1] + 1), sizeof(char));
+    sha->alpha = calloc((size_t) (sha->alphabet[sha->n - 1] + 2), sizeof(char));
 
     if (!sha->alpha) {
         perror("Malloc alpha:");
